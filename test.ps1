@@ -23,16 +23,15 @@ function Invoke-Native {
     param($Executable, $Arguments)
     # Build an arguments string which follows the Windows command-line arguments string rules
     # See: https://docs.microsoft.com/en-us/previous-versions//17w5ykft(v=vs.85)?redirectedfrom=MSDN
-    $ArgsString = @()
-    foreach ($Arg in $Arguments) {
-        $Arg = $Arg -replace '(\\+)"','$1$1"' # Double-up all backslashes immediately preceeding quote marks.
-        $Arg = $Arg -replace '(\\+)$','$1$1'  # Double-up all backslashes immediately preceeding the end of the string.
-        $Arg = $Arg -replace '"','\"'         # Escape internal quote marks.
-        $ArgsString += "`"$Arg`""             # Quote the argument.
+    $Arguments = $Arguments | ForEach-Object {
+        $_ = $_ -Replace '(\\+)"','$1$1"' # Double-up all backslashes immediately preceeding quote marks.
+        $_ = $_ -Replace '(\\+)$','$1$1'  # Double-up all backslashes immediately preceeding the end of the string.
+        $_ = $_ -Replace '"','\"'         # Escape internal quote marks.
+        "`"$_`""                          # Quote the argument.
     }
     # Use the stop-parsing symbol (--%) to ensure the argument string is passed along unchanged 
     # See: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_parsing?view=powershell-7.1
-    Invoke-Expression "& `"$Executable`" --% $($ArgsString -Join ' ')"
+    Invoke-Expression "& `"$Executable`" --% $($Arguments -Join ' ')"
 }
 
 Test { PrintArgs $a $b $c $e --arg=$d }
