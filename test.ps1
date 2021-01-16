@@ -35,19 +35,17 @@ function PrintArgs {
 function Invoke-Native {
     param($Executable, $Arguments)
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new($Executable);
-    # Use UTF-8
     $startInfo.StandardOutputEncoding = [System.Text.Encoding]::UTF8;
-    # Required for UTF-8
     $startInfo.RedirectStandardOutput = $true;
     $startInfo.CreateNoWindow = $true;
     $startInfo.UseShellExecute = $false;
     if ($startInfo.ArgumentList.Add) {
-        Write-Host -ForegroundColor Yellow 'Pwsh6'
+        Write-Host -ForegroundColor Yellow 'Pwsh6+'
         # PowerShell 6+ uses .NET 5+ and supports the ArgumentList property
         # which bypasses the need for manually escaping the argument list into
         # a command string.
         foreach ($arg in $Arguments) {
-            $startInfo.ArgumentList.Add($arg)
+            $startInfo.ArgumentList.Add($arg);
         }
     }
     else {
@@ -55,14 +53,14 @@ function Invoke-Native {
         # Build an arguments string which follows the C++ command-line argument quoting rules
         # See: https://docs.microsoft.com/en-us/previous-versions//17w5ykft(v=vs.85)?redirectedfrom=MSDN
         $escaped = $Arguments | ForEach-Object {
-            $_ = $_ -Replace '(\\+)"','$1$1"' # Escape backslash chains immediately preceeding quote marks.
-            $_ = $_ -Replace '(\\+)$','$1$1'  # Escape backslash chains immediately preceeding the end of the string.
-            $_ = $_ -Replace '"','\"'         # Escape quote marks.
-            "`"$_`""                          # Quote the argument.
+            $_ = $_ -Replace '(\\+)"','$1$1"'; # Escape backslash chains immediately preceeding quote marks.
+            $_ = $_ -Replace '(\\+)$','$1$1;'  # Escape backslash chains immediately preceeding the end of the string.
+            $_ = $_ -Replace '"','\"';         # Escape quote marks.
+            "`"$_`""                           # Quote the argument.
         }
         $startInfo.Arguments = $escaped -Join ' ';
     }
-    [System.Diagnostics.Process]::Start($startInfo).StandardOutput.ReadToEnd()
+    [System.Diagnostics.Process]::Start($startInfo).StandardOutput.ReadToEnd();
 }
 
 $PrintArgs = if ($IsLinux) {
@@ -90,14 +88,14 @@ function Escape-Argument {
         }
         if ($c -eq $QUOTE) {
             # emit escaped backslashes, then escaped quote
-            [void] $buf.Append('\' * $backslashes * 2)
+            [void] $buf.Append('\', $backslashes * 2)
             [void] $buf.Append('\"')
             $backslashes = 0;
             continue;
         }
         if ($backslashes -gt 0) {
             # emit unescaped backslashes
-            [void] $buf.Append('\' * $backslashes)
+            [void] $buf.Append('\', $backslashes)
             $backslashes = 0;
         }
         # emit the character
@@ -105,7 +103,7 @@ function Escape-Argument {
     }
     if ($backslashes -gt 0) {
         # emit escaped backslashes at the end of the string
-        [void] $buf.Append('\' * $backslashes * 2)
+        [void] $buf.Append('\', $backslashes * 2)
     }
     [void] $buf.Append('"')
     $buf.ToString()
@@ -119,5 +117,5 @@ function Escape-ArgumentRegex {
     "`"$s`""                          # Quote the argument.
 }
 
-# Benchmark { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-Argument $_ } }
-# Benchmark { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-ArgumentRegex $_ } }
+Test { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-Argument $_ } }
+Test { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-ArgumentRegex $_ } }
