@@ -65,7 +65,11 @@ function Invoke-Native {
     [System.Diagnostics.Process]::Start($startInfo).StandardOutput.ReadToEnd()
 }
 
-$PrintArgs = Resolve-Path "$PSScriptRoot\target\debug\printargs"
+$PrintArgs = if ($IsLinux) {
+    Resolve-Path "$PSScriptRoot\target\debug\printargs"
+} else {
+    Resolve-Path "$PSScriptRoot\target\debug\printargs.exe"
+}
 
 Test { PrintArgs $a $b $c $e --arg=$d $f $g }
 Test { Invoke-Native -Executable $PrintArgs -Arguments @($a, $b, $c, $e, "--arg=$d", $f, $g) }
