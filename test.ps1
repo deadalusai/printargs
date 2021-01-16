@@ -41,7 +41,8 @@ function Invoke-Native {
     $startInfo.RedirectStandardOutput = $true;
     $startInfo.CreateNoWindow = $true;
     $startInfo.UseShellExecute = $false;
-    if ($startInfo.ArgumentList) {
+    if ($startInfo.ArgumentList.Add) {
+        Write-Host -ForegroundColor Yellow 'Pwsh6'
         # PowerShell 6+ uses .NET 5+ and supports the ArgumentList property
         # which bypasses the need for manually escaping the argument list into
         # a command string.
@@ -50,6 +51,7 @@ function Invoke-Native {
         }
     }
     else {
+        Write-Host -ForegroundColor Yellow 'Pwsh?'
         # Build an arguments string which follows the C++ command-line argument quoting rules
         # See: https://docs.microsoft.com/en-us/previous-versions//17w5ykft(v=vs.85)?redirectedfrom=MSDN
         $escaped = $Arguments | ForEach-Object {
@@ -63,9 +65,11 @@ function Invoke-Native {
     [System.Diagnostics.Process]::Start($startInfo).StandardOutput.ReadToEnd()
 }
 
+$PrintArgs = Resolve-Path "$PSScriptRoot\target\debug\printargs"
+
 Test { PrintArgs $a $b $c $e --arg=$d $f $g }
-Test { Invoke-Native -Executable "$PSScriptRoot\target\debug\printargs" -Arguments @($a, $b, $c, $e, "--arg=$d", $f, $g) }
-Test { & "$PSScriptRoot\target\debug\printargs" $a $b $c $e --arg=$d $f $g <# (this one doesn't work) #> }
+Test { Invoke-Native -Executable $PrintArgs -Arguments @($a, $b, $c, $e, "--arg=$d", $f, $g) }
+Test { & $PrintArgs $a $b $c $e --arg=$d $f $g <# (this one doesn't work) #> }
 
 function Escape-Argument {
     param([string] $Argument)
