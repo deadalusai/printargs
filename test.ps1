@@ -54,7 +54,7 @@ function Invoke-Native {
         # See: https://docs.microsoft.com/en-us/previous-versions//17w5ykft(v=vs.85)?redirectedfrom=MSDN
         $escaped = $Arguments | ForEach-Object {
             $_ = $_ -Replace '(\\+)"','$1$1"'; # Escape backslash chains immediately preceeding quote marks.
-            $_ = $_ -Replace '(\\+)$','$1$1;'  # Escape backslash chains immediately preceeding the end of the string.
+            $_ = $_ -Replace '(\\+)$','$1$1';  # Escape backslash chains immediately preceeding the end of the string.
             $_ = $_ -Replace '"','\"';         # Escape quote marks.
             "`"$_`""                           # Quote the argument.
         }
@@ -71,7 +71,7 @@ $PrintArgs = if ($IsLinux) {
 
 Test { PrintArgs $a $b $c $e --arg=$d $f $g }
 Test { Invoke-Native -Executable $PrintArgs -Arguments @($a, $b, $c, $e, "--arg=$d", $f, $g) }
-Test { & $PrintArgs $a $b $c $e --arg=$d $f $g <# (this one doesn't work) #> }
+# Test { & $PrintArgs $a $b $c $e --arg=$d $f $g <# (this one doesn't work) #> }
 
 function Escape-Argument {
     param([string] $Argument)
@@ -117,5 +117,36 @@ function Escape-ArgumentRegex {
     "`"$s`""                          # Quote the argument.
 }
 
-Test { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-Argument $_ } }
-Test { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-ArgumentRegex $_ } }
+# Test { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-Argument $_ } }
+# Test { @($a, $b, $c, $d, $e, $f, $g) | Foreach-Object { Escape-ArgumentRegex $_ } }
+
+$TestArguments = @(
+    'hello "world" \" \\" goodbye "moon"',
+    'path\without\whitespace\',
+    'path\with whitespace\',
+    '--flag=argument passed to flag',
+    'five trailing backslashes \\\\\',
+    '\\\\\five leading backslashes',
+    '\\?\C:\Windows\Extended Path Syntax\',
+    # Test strings from https://github.com/PowerShell/PowerShell/pull/13482
+    '',
+    'foo=bar none',
+    '/foo:bar none',
+    '-foo:bar none',
+    'foo=bar "quote" none',
+    'foo:not me',
+    'foo=notme',
+    'notmeeither',
+    'c:\program files\',
+    'a "b c" d',
+    'a \"b c\" d',
+    '3" of snow',
+    'ab\',
+    'a b\\',
+    'a&b',
+    'a"b'
+);
+
+Test { $TestArguments | Foreach-Object { Escape-Argument $_ } }
+Test { $TestArguments | Foreach-Object { Escape-ArgumentRegex $_ } }
+Test { Invoke-Native -Executable $PrintArgs -Arguments $TestArguments }
